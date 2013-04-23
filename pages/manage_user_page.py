@@ -162,28 +162,18 @@ class MozTrapManageUserPage(MozTrapBasePage):
             #check the name if the category name matches
             name_category = name_category.lower()
             if name_category == category and len(name_category) == len(category):
-                #find all the associated items
-#               ul = element.find_element(By.CSS_SELECTOR, "ul.filter-items long")
-#               items = ul.find_elements(By.CSS_SELECTOR, "li.filter-item")
+                #look for the category with the given name
                 item_no = 1
+                content = 0
                 while 1:
                     try:
                         item = element.find_element(By.CSS_SELECTOR, "#id-filter-"+category+"-"+str(item_no))
-                        content = item.find_element(By.CSS_SELECTOR, "onoffswitch")
-                        content = content.text
-                        if content == name and len(content) == len(name):
+                        content = item.find_element(By.XPATH, "//label[text()='" + name + "']")
+                        if content != 0:
                             break
                         item_no = item_no + 1                      
                     except Exceptions.NoSuchElementException:
                         break
-                if item != 0:
-                    item.click()
-                            
-                    
-                    
-                
-                for item in items:
-                    content = item.find_element(By.CSS_SELECTOR, "onoff.content")
-                    content = content.text
-                    print content
+                if content != 0:
+                    content.click()
              
