@@ -18,10 +18,8 @@ class MozTrapManageUserPage(MozTrapBasePage):
 
     _page_title = 'Manage User'
     
-    #locators
-    _LocatorManageTab = (By.CSS_SELECTOR, "li.manage-nav > a") 
-    _LocatorUsersTab = (By.CSS_SELECTOR, "li.nav-users > a")
-    _LocatorCreateUser = (By.CSS_SELECTOR, "#manageusers .create.single ")
+    #common locators
+    _locManageTab = (By.XPATH, "//ul//li/child::a[text()='Manage']")    
 
     #constants
     _TimeOut = 10
@@ -29,75 +27,115 @@ class MozTrapManageUserPage(MozTrapBasePage):
     #add a new user into the user list
     def create_user(self, name=None, emailAddr=None, role=None):     
         
-        #click the "Manage" tab       
+        #local locators
+        _locUsersTab = (By.XPATH, "//div/ul//child::a[text()='Users']")   
+        _locCreateUser = (By.XPATH, "//child::section/a[text()='create a user']")        
+        _locNewUserName = (By.XPATH, "//child::input[attribute::id='id_username']")
+        _locNewUserEmail = (By.XPATH, "//child::input[attribute::id='id_email']")
+        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")
+        _locAddUser = (By.XPATH, "//div[attribute::class='form-actions']/child::button")
+        _locErrList = (By.XPATH, "//child::ul[attribute::class='errorlist']")
+        _locUserList = (By.XPATH, "//child::article[attribute::class='listitem']")
+
+        _locUserName = (By.XPATH, "//h3[attribute::title='"+name+"']")
+        _locUserEmail = (By.XPATH, "//div[attribute::class='email'][text()='"+emailAddr+"']")
+        _locUserRole = (By.XPATH, "//ul[attribute::class='roles']/child::li[text()='"+role+"']")         
+        
+        #[H] click the "Manage" tab       
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._LocatorManageTab))
+                      until(lambda s: self.find_element(*self._locManageTab))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         element.click()
         
-        #click the "Users" tab
+        #[H] click the "Users" tab
         try:         
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._LocatorUsersTab))
+                      until(lambda s: self.find_element(*_locUsersTab))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)     
         element.click()
 
         #create a new user
-        #click "create a user" tab
+        #[H] click "create a user" tab
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._LocatorCreateUser))
+                      until(lambda s: self.find_element(*_locCreateUser))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         element.click()
             
-        #fill out the info of a new user
+        #[H] fill out the info of a new user
         try:
-            elmntName = self.find_element(By.CSS_SELECTOR, "#id_username.value")
-            elmntEmail = self.find_element(By.CSS_SELECTOR, "#id_email.value")
-            elmntRole = self.find_element(By.CSS_SELECTOR, "#id_groups.value") 
-            elmntActions = self.find_element(By.CSS_SELECTOR, "div.form-actions > button")   
-        except WebDriverException:
-            Assert.fail(Exceptions.WebDriverException)
+            elmntName = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_element(*_locNewUserName))
+            elmntEmail = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_element(*_locNewUserEmail))
+            elmntRole = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_element(*_locNewUserRole))                                            
+            elmntActions = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_element(*_locAddUser))             
+        except Exceptions.TimeoutException:
+            Assert.fail(Exceptions.TimeoutException)
         elmntName.send_keys(name)
         elmntEmail.send_keys(emailAddr)
         try:
             Select(elmntRole).select_by_visible_text(role)
         except Exceptions.NoSuchElementException:
             Assert.fail(Exceptions.NoSuchElementException)
-        elmntActions.submit()   #submit the info
+        elmntActions.click()   #submit the info
         
-        #check if the submission is complete without an error
+        #[M] check if the submission is complete without an error
+        isErrListDisplayed = False
         try:
-            elmntErrList = self.find_element(By.CSS_SELECTOR, "ul.errorlist > li") 
-            Assert.false(elmntErrList.is_displayed())   #either the name or the email is already in use      
-        except Exceptions.NoSuchElementException:
-            print "submission is complete"
+            elmntErrList = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_element(*_locErrList))
+            isErrListDisplayed = elmntErrList.is_displayed()
+        except Exceptions.TimeoutException:
+            print "submission is complete without an error"
+        if isErrListDisplayed == True:      
+            print "the given set of the new user setting is already in use.\n"
+            return False
 
-        #acquire the list of users
+        #[M] acquire the list of users
         try:
-            elmntUserList = self.find_elements(By.CSS_SELECTOR, "#manage-users-form .listitem")
-        except Exceptions.WebDriverException:
-            Assert.fail(Exceptions.WebDriverException)  #failed to obtain a list of users
+            elmntUserList = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: self.find_elements(*_locUserList))                                                            
+        except Exceptions.TimeoutException:
+            Assert.fail(Exceptions.TimeoutException)  #failed to obtain a list of users
         
-        #review the contents of the submission
+        #[M] review the contents of the submission
         isGivenUserFound = False
-        for element in elmntUserList:
-            userName = element.find_element(By.CSS_SELECTOR, "div.name").text
-            userEmail = element.find_element(By.CSS_SELECTOR, "div.email").text
-            userRoles = element.find_element(By.CSS_SELECTOR, "div.roles").text            
-            if userName == name and userEmail == emailAddr and userRoles == role:
-                isGivenUserFound = True
-                break
-        Assert.true(isGivenUserFound)   #the given user is not listed in
+        for i in range(len(elmntUserList)):
+            try: 
+                element = elmntUserList[i]
+                userName = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: element.find_element(*_locUserName))
+                userEmail = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: element.find_element(*_locUserEmail))
+                userRole = WebDriverWait(self.selenium,self._TimeOut). \
+                      until(lambda s: element.find_element(*_locUserRole))                                                     
+                if userName != 0 and userEmail != 0 and userRole != 0:
+                    isGivenUserFound = True
+                    break      
+            except Exceptions.TimeoutException:
+            #Assert.true(isGivenUserFound)
+                print "let us move on..\n"
+                #break
+        
+        #end
+        return isGivenUserFound
+        
+        #if userName == name and userEmail == emailAddr and userRoles == role:
+         #isGivenUserFound = True
+         #       break
+#        Assert.true(isGivenUserFound)   #the given user is not listed in
 
     #delete the user in the user list
     #def delete_user(self, name=None):
     #
-        #click the "Manage" tab
+        #[H] click the "Manage" tab
     #    try:
     #        element = WebDriverWait(self.selenium, self._TimeOut). \
     #                  until(lambda s: self.find_element(*self._LocatorManageTab))
@@ -115,7 +153,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #click the "Manage" tab       
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._LocatorManageTab))
+                      until(lambda s: self.find_element(*self._locManageTab))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         element.click()
