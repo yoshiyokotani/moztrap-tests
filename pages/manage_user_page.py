@@ -44,7 +44,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[H] click the "Manage" tab       
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._locManageTab))
+                                    until(lambda s: self.find_element(*self._locManageTab))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         element.click()
@@ -52,7 +52,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[H] click the "Users" tab
         try:         
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._locUsersTab))
+                                    until(lambda s: self.find_element(*self._locUsersTab))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)     
         element.click()
@@ -61,7 +61,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[H] click "create a user" tab
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locCreateUser))
+                                    until(lambda s: self.find_element(*_locCreateUser))
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         element.click()
@@ -69,13 +69,13 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[H] fill out the info of a new user
         try:
             elmntName = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locNewUserName))
+                                      until(lambda s: self.find_element(*_locNewUserName))
             elmntEmail = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locNewUserEmail))
+                                       until(lambda s: self.find_element(*_locNewUserEmail))
             elmntRole = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locNewUserRole))                                            
+                                      until(lambda s: self.find_element(*_locNewUserRole))                                            
             elmntActions = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locAddUser))             
+                                         until(lambda s: self.find_element(*_locAddUser))             
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         elmntName.send_keys(name)
@@ -90,7 +90,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         isErrListDisplayed = False
         try:
             elmntErrList = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*_locErrList))
+                                         until(lambda s: self.find_element(*_locErrList))
             isErrListDisplayed = elmntErrList.is_displayed()
         except Exceptions.TimeoutException:
             print "submission is complete without an error"
@@ -101,7 +101,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[M] acquire the list of users
         try:
             elmntUserList = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_elements(*self._locUserList))                                                            
+                                          until(lambda s: self.find_elements(*self._locUserList))                                                            
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)  #failed to obtain a list of users
         
@@ -112,11 +112,11 @@ class MozTrapManageUserPage(MozTrapBasePage):
                 element = elmntUserList[i]
                 #elements
                 userName = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: element.find_element(*_locUserName))
+                                         until(lambda s: element.find_element(*_locUserName))
                 userEmail = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: element.find_element(*_locUserEmail))
+                                          until(lambda s: element.find_element(*_locUserEmail))
                 userRole = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: element.find_element(*_locUserRole))
+                                         until(lambda s: element.find_element(*_locUserRole))
                 #texts
                 userName_text = userName.text
                 userEmail_text = userEmail.text
@@ -126,7 +126,6 @@ class MozTrapManageUserPage(MozTrapBasePage):
                     break      
             except Exceptions.TimeoutException:
                 print "let us move on..\n"
-        
         #end
         return isGivenUserFound
         
@@ -134,8 +133,8 @@ class MozTrapManageUserPage(MozTrapBasePage):
     def delete_user(self, name=None):
     
         #local locators
-        _locUserName = (By.XPATH, "//h3[attribute::title='"+name+"']")
-        _locDelButton = (By.XPATH, "//div[attribute::class='controls']/child::button")
+        _locUser = (By.XPATH, "//h3[attribute::title='"+name+"']/preceding-sibling::div[attribute::class='controls']")
+        _locDelButton = (By.CSS_SELECTOR, "button")
     
         #[H] click the "Manage" tab       
         try:
@@ -156,22 +155,20 @@ class MozTrapManageUserPage(MozTrapBasePage):
         #[M] find the user to leave out of the user list
         isGivenUserFound = False
         try: 
-            userName = WebDriverWait(self.selenium,self._TimeOut). \
-                                     until(lambda s: self.find_element(*_locUserName))
+            user = WebDriverWait(self.selenium,self._TimeOut). \
+                                     until(lambda s: self.find_element(*_locUser))
             #take a delete action on the element       
             delButton = WebDriverWait(self.selenium,self._TimeOut). \
-                                          until(lambda s: self.find_element(*_locDelButton))
+                                          until(lambda s: user.find_element(*_locDelButton))
             isGivenUserFound = True           
         except Exceptions.TimeoutException:
             print "let us move on..\n"
 
         if isGivenUserFound == True:
             #click the button
-            delButton.click()
-
-            
+            delButton.click()            
         
-        #end
+        #return the outcome in boolean
         return isGivenUserFound
 
 
