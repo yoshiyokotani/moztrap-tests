@@ -26,21 +26,9 @@ class MozTrapManageUserPage(MozTrapBasePage):
     #constants
     _TimeOut = 30
 
-    #add a new user into the user list
-    def create_user(self, name=None, emailAddr=None, role=None):     
-        
-        #local locators          
-        _locCreateUser = (By.XPATH, "//child::section/a[text()='create a user']")        
-        _locNewUserName = (By.XPATH, "//child::input[attribute::id='id_username']")
-        _locNewUserEmail = (By.XPATH, "//child::input[attribute::id='id_email']")
-        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")
-        _locAddUser = (By.XPATH, "//div[attribute::class='form-actions']/child::button")
-        _locErrList = (By.XPATH, "//child::ul[attribute::class='errorlist']")        
-        
-        _locUserName = (By.CSS_SELECTOR, "h3.title")
-        _locUserEmail = (By.CSS_SELECTOR, "div.email")
-        _locUserRole = (By.CSS_SELECTOR, "ul.roles")         
-        
+    #move to the user page
+    def __move_to_user_page(self):
+
         #[H] click the "Manage" tab       
         try:
             element = WebDriverWait(self.selenium,self._TimeOut). \
@@ -56,6 +44,20 @@ class MozTrapManageUserPage(MozTrapBasePage):
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)     
         element.click()
+        
+    #add a new user into the user list
+    def create_user(self, name=None, emailAddr=None, role=None):     
+        
+        #local locators          
+        _locCreateUser = (By.XPATH, "//child::section/a[text()='create a user']")        
+        _locNewUserName = (By.XPATH, "//child::input[attribute::id='id_username']")
+        _locNewUserEmail = (By.XPATH, "//child::input[attribute::id='id_email']")
+        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")
+        _locAddUser = (By.XPATH, "//div[attribute::class='form-actions']/child::button")
+        _locErrList = (By.XPATH, "//child::ul[attribute::class='errorlist']")               
+        
+        #[H] move to the user page
+        self.__move_to_user_page()
 
         #create a new user
         #[H] click "create a user" tab
@@ -98,6 +100,59 @@ class MozTrapManageUserPage(MozTrapBasePage):
             print "the given set of the new user setting is already in use.\n"
             return False
 
+        #[M] just check if the added user can be found in the DB
+        element = self.__find_user(name, emailAddr, role)
+        if element == 0:
+            return False
+        else:
+            return True
+        
+    #delete the user in the user list
+    def delete_user(self, name=None):
+    
+        #local locators
+        _locUser = (By.XPATH, "//h3[attribute::title='"+name+"']/preceding-sibling::div[attribute::class='controls']")
+        _locDelButton = (By.CSS_SELECTOR, "button")
+    
+        #[H] move to the user page
+        self.__move_to_user_page()
+          
+        #[M] find the user to leave out of the user list
+        isGivenUserFound = False
+        try: 
+            user = WebDriverWait(self.selenium,self._TimeOut). \
+                                     until(lambda s: self.find_element(*_locUser))
+            #take a delete action on the element       
+            delButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                          until(lambda s: user.find_element(*_locDelButton))
+            isGivenUserFound = True           
+        except Exceptions.TimeoutException:
+            print "let us move on..\n"
+
+        if isGivenUserFound == True:
+            #click the button
+            delButton.click()            
+        
+        #return the outcome in boolean
+        return isGivenUserFound
+
+    #
+    #find the given user in the DB.
+    #
+    # return value:
+    #    0       : not found
+    #    element : found user element
+    #
+    def __find_user(self, name=None, emailAddr=None, role=None):
+    
+        #local locators
+        _locUserName = (By.CSS_SELECTOR, "h3.title")
+        _locUserEmail = (By.CSS_SELECTOR, "div.email")
+        _locUserRole = (By.CSS_SELECTOR, "ul.roles") 
+        
+        #move to the user page
+        self.__move_to_user_page()
+        
         #[M] acquire the list of users
         try:
             elmntUserList = WebDriverWait(self.selenium,self._TimeOut). \
@@ -126,54 +181,17 @@ class MozTrapManageUserPage(MozTrapBasePage):
                     break      
             except Exceptions.TimeoutException:
                 print "let us move on..\n"
-        #end
-        return isGivenUserFound
         
-    #delete the user in the user list
-    def delete_user(self, name=None):
+        #post-processing
+        if isGivenUserFound == False:
+            element = 0
+         
+        return element
+        
+                
+    #def activate_user
     
-        #local locators
-        _locUser = (By.XPATH, "//h3[attribute::title='"+name+"']/preceding-sibling::div[attribute::class='controls']")
-        _locDelButton = (By.CSS_SELECTOR, "button")
-    
-        #[H] click the "Manage" tab       
-        try:
-            element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._locManageTab))
-        except Exceptions.TimeoutException:
-            Assert.fail(Exceptions.TimeoutException)
-        element.click()
-        
-        #[H] click the "Users" tab
-        try:         
-            element = WebDriverWait(self.selenium,self._TimeOut). \
-                      until(lambda s: self.find_element(*self._locUsersTab))
-        except Exceptions.TimeoutException:
-            Assert.fail(Exceptions.TimeoutException)     
-        element.click()
-          
-        #[M] find the user to leave out of the user list
-        isGivenUserFound = False
-        try: 
-            user = WebDriverWait(self.selenium,self._TimeOut). \
-                                     until(lambda s: self.find_element(*_locUser))
-            #take a delete action on the element       
-            delButton = WebDriverWait(self.selenium,self._TimeOut). \
-                                          until(lambda s: user.find_element(*_locDelButton))
-            isGivenUserFound = True           
-        except Exceptions.TimeoutException:
-            print "let us move on..\n"
-
-        if isGivenUserFound == True:
-            #click the button
-            delButton.click()            
-        
-        #return the outcome in boolean
-        return isGivenUserFound
-
-
-    #    
-    #def find_user(self, name=None):
+    #def deactivate_user     
         
     #test
     def test(self):
