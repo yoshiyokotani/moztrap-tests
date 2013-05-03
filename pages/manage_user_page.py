@@ -56,7 +56,8 @@ class MozTrapManageUserPage(MozTrapBasePage):
         _locCreateUser = (By.XPATH, "//child::section/a[text()='create a user']")        
         _locNewUserName = (By.XPATH, "//child::input[attribute::id='id_username']")
         _locNewUserEmail = (By.XPATH, "//child::input[attribute::id='id_email']")
-        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")    
+        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")
+        _locNewUserStatus = (By.XPATH, "//child::input[@id='id_is_active']")  
         _locErrList = (By.XPATH, "//child::ul[attribute::class='errorlist']")               
         
         #[H] move to the user page
@@ -78,13 +79,19 @@ class MozTrapManageUserPage(MozTrapBasePage):
             elmntEmail = WebDriverWait(self.selenium,self._TimeOut). \
                                        until(lambda s: self.find_element(*_locNewUserEmail))
             elmntRole = WebDriverWait(self.selenium,self._TimeOut). \
-                                      until(lambda s: self.find_element(*_locNewUserRole))                                            
+                                      until(lambda s: self.find_element(*_locNewUserRole)) 
+            elmntStatus = WebDriverWait(self.selenium,self._TimeOut). \
+                                        until(lambda s: self.find_element(*_locNewUserStatus))                                                                                  
             elmntActions = WebDriverWait(self.selenium,self._TimeOut). \
-                                         until(lambda s: self.find_element(*self._locAddUser))             
+                                         until(lambda s: self.find_element(*self._locAddUser))
+            
+            elmntName.send_keys(name)
+            elmntEmail.send_keys(emailAddr)
+            if isActive != None and isActive == 0:
+                elmntStatus.click()     #set as an inactive user
+                                                         
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
-        elmntName.send_keys(name)
-        elmntEmail.send_keys(emailAddr)
         try:
             Select(elmntRole).select_by_visible_text(role)
         except Exceptions.NoSuchElementException:
@@ -178,9 +185,20 @@ class MozTrapManageUserPage(MozTrapBasePage):
                 #texts
                 userName_text = userName.text
                 userEmail_text = userEmail.text
-                userRole_text = userRole.text                                                     
-                if userName_text == name and userEmail_text == emailAddr and userRole_text == role:
-                    isGivenUserFound = True
+                userRole_text = userRole.text
+                
+                #check the attributes
+                isNameMatched = False
+                if name != None and name == userName_text:
+                    isNameMatched = True
+                isEmailMatched = False
+                if emailAddr != None and emailAddr == userEmail_text:
+                    isEmailMatched = True
+                isRoleMatched = False
+                if role != None and role == userRole_text:
+                    isRoleMatched = True
+                isGivenUserFound = isNameMatched
+                if isGivenUserFound == True:
                     break      
             except Exceptions.TimeoutException:
                 print "let us move on..\n"
@@ -240,13 +258,13 @@ class MozTrapManageUserPage(MozTrapBasePage):
                 return True
             
     #activate via switch of the user editing page                 
-    def activate_user(self, userName=None, emailAddr=None, role=None):
+    def activate_user(self, userName=None):
     
         #local locator
         _locActiveStatusAction = (By.XPATH, "//button[@class='active status-action' and @name='action-activate']")
 
         #find the element associated with the given user
-        user = self.__find_user(userName,emailAddr,role)
+        user = self.__find_user(userName)
         if user is None:
             print "the given user is not found.\n"
             return False
@@ -273,13 +291,13 @@ class MozTrapManageUserPage(MozTrapBasePage):
             return True
     
     #deactivate via switch of the user editing page  
-    def deactivate_user(self, userName=None, emailAddr=None, role=None):
+    def deactivate_user(self, userName=None):
  
         #local locator        
         _locDisabledStatusAction = (By.XPATH, "//button[@class='disabled status-action' and @name='action-deactivate']")
         
         #find the element associated with the given user
-        user = self.__find_user(userName,emailAddr,role)
+        user = self.__find_user(userName)
         if user is None:
             print "the given user is not found.\n"
             return False

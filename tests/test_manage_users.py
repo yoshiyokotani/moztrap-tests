@@ -19,11 +19,11 @@ class TestManageUsers():
         login_pg.login()
                 
         user_pg = MozTrapManageUserPage(mozwebqa)
-        user_pg.create_user('user2','newuser2@test.com','Tester')
+        user_pg.create_user('user2','newuser2@test.com','Tester',0)
         user_pg.delete_user('user2')
-        user_pg.create_user('user2','newuser2@test.com','Tester')
-        user_pg.activate_user('user2','newuser2@test.com','Tester')
-        user_pg.deactivate_user('user2','newuser2@test.com','Tester')
+        user_pg.create_user('user2','newuser2@test.com','Tester',1)
+        user_pg.activate_user('user2')
+        user_pg.deactivate_user('user2')
         
         
         
