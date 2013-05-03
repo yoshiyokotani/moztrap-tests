@@ -13,6 +13,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 import selenium.common.exceptions as Exceptions
 
 from pages.elUtilities import Utilities
+from sqlalchemy.sql.operators import isnot
 
 class MozTrapManageUserPage(MozTrapBasePage):
 
@@ -22,6 +23,9 @@ class MozTrapManageUserPage(MozTrapBasePage):
     _locManageTab = (By.XPATH, "//ul//li/child::a[text()='Manage']")    
     _locUsersTab = (By.XPATH, "//div/ul//child::a[text()='Users']") 
     _locUserList = (By.XPATH, "//child::article[attribute::class='listitem']")
+    _locAddUser = (By.XPATH, "//div[attribute::class='form-actions']/child::button")
+
+    _locStatusSelectButton = (By.CSS_SELECTOR, "div.status-title")
 
     #constants
     _TimeOut = 30
@@ -46,14 +50,13 @@ class MozTrapManageUserPage(MozTrapBasePage):
         element.click()
         
     #add a new user into the user list
-    def create_user(self, name=None, emailAddr=None, role=None):     
+    def create_user(self, name=None, emailAddr=None, role=None, isActive=None):     
         
         #local locators          
         _locCreateUser = (By.XPATH, "//child::section/a[text()='create a user']")        
         _locNewUserName = (By.XPATH, "//child::input[attribute::id='id_username']")
         _locNewUserEmail = (By.XPATH, "//child::input[attribute::id='id_email']")
-        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")
-        _locAddUser = (By.XPATH, "//div[attribute::class='form-actions']/child::button")
+        _locNewUserRole = (By.XPATH, "//child::select[attribute::id='id_groups']")    
         _locErrList = (By.XPATH, "//child::ul[attribute::class='errorlist']")               
         
         #[H] move to the user page
@@ -77,7 +80,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
             elmntRole = WebDriverWait(self.selenium,self._TimeOut). \
                                       until(lambda s: self.find_element(*_locNewUserRole))                                            
             elmntActions = WebDriverWait(self.selenium,self._TimeOut). \
-                                         until(lambda s: self.find_element(*_locAddUser))             
+                                         until(lambda s: self.find_element(*self._locAddUser))             
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)
         elmntName.send_keys(name)
@@ -102,7 +105,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
 
         #[M] just check if the added user can be found in the DB
         element = self.__find_user(name, emailAddr, role)
-        if element == 0:
+        if element is None:
             return False
         else:
             return True
@@ -135,12 +138,12 @@ class MozTrapManageUserPage(MozTrapBasePage):
         
         #return the outcome in boolean
         return isGivenUserFound
-
+            
     #
     #find the given user in the DB.
     #
     # return value:
-    #    0       : not found
+    #    None    : not found
     #    element : found user element
     #
     def __find_user(self, name=None, emailAddr=None, role=None):
@@ -159,7 +162,7 @@ class MozTrapManageUserPage(MozTrapBasePage):
                                           until(lambda s: self.find_elements(*self._locUserList))                                                            
         except Exceptions.TimeoutException:
             Assert.fail(Exceptions.TimeoutException)  #failed to obtain a list of users
-        
+            
         #[M] review the contents of the submission
         isGivenUserFound = False
         for i in range(len(elmntUserList)):
@@ -184,15 +187,126 @@ class MozTrapManageUserPage(MozTrapBasePage):
         
         #post-processing
         if isGivenUserFound == False:
-            element = 0
-         
+            element = None
         return element
-        
                 
-    #def activate_user
+    #change the role of the given user
+    def change_user_role(self, name=None, emailAddr=None, role=None, newRole=None):
+
+        #local locators
+        _locEditButton = (By.CSS_SELECTOR, "a.edit-link")        
+        _locRoleOption = (By.XPATH, "//option[attribute::value][text()='"+newRole+"']" )    
+            
+        #move to the user page
+        self.__move_to_user_page()
+                
+        #find the given user 
+        user = self.__find_user(name, emailAddr, role)
+        if user is None:
+            print "the given user is not found in the DB.\n"
+            return False
+        else:
+            #click the edit button
+            try:
+                button = WebDriverWait(self.selenium,self._TimeOut). \
+                                       until(lambda s: user.find_element(*_locEditButton))
+                button.click()
+            except Exceptions.TimeoutException:
+                print "the edit button was not found.\n"
+                return False
+            
+            #search for the new role in the roles box and select it
+            try:
+                roleOption = WebDriverWait(self.selenium,self._TimeOut). \
+                                           until(lambda s: self.find_element(*_locRoleOption))
+                roleOption.click()
+            except Exceptions.TimeoutException:          
+                print "the given new role was not found.\n"
+                return False
+            
+            #click the submit button
+            try:
+                submitButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                             until(lambda s: self.find_element(*self._locAddUser))
+                submitButton.click()
+            except Exceptions.TimeoutException:          
+                print "the submit button was not found.\n"
+                return False            
+            
+            #make sure that the user with the new role can be found in the list
+            if self.__find_user(name, emailAddr, newRole) is None:
+                return False
+            else:
+                return True
+            
+    #activate via switch of the user editing page                 
+    def activate_user(self, userName=None, emailAddr=None, role=None):
     
-    #def deactivate_user     
+        #local locator
+        _locActiveStatusAction = (By.XPATH, "//button[@class='active status-action' and @name='action-activate']")
+
+        #find the element associated with the given user
+        user = self.__find_user(userName,emailAddr,role)
+        if user is None:
+            print "the given user is not found.\n"
+            return False
+        else:
+            try:
+                statusSelectButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                                   until(lambda s: user.find_element(*self._locStatusSelectButton))
+            except Exceptions.TimeoutException:          
+                print "the submit button was not found.\n"
+            #check the current status of the button
+            status = statusSelectButton.text
+            if status == 'active':
+                #the current status is active, so no further action is needed
+                print "the user is already active.\n"
+            else:
+                #the current status is inactive, so click the button for the activation
+                statusSelectButton.click()
+                try:
+                    activateButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                                       until(lambda s: self.find_element(*_locActiveStatusAction))
+                    activateButton.submit()                                                       
+                except Exceptions.TimeoutException:          
+                    print "the activate button was not found.\n"               
+            return True
+    
+    #deactivate via switch of the user editing page  
+    def deactivate_user(self, userName=None, emailAddr=None, role=None):
+ 
+        #local locator        
+        _locDisabledStatusAction = (By.XPATH, "//button[@class='disabled status-action' and @name='action-deactivate']")
         
+        #find the element associated with the given user
+        user = self.__find_user(userName,emailAddr,role)
+        if user is None:
+            print "the given user is not found.\n"
+            return False
+        else:
+            try:
+                statusSelectButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                                   until(lambda s: user.find_element(*self._locStatusSelectButton))
+            except Exceptions.TimeoutException:          
+                print "the submit button was not found.\n"
+            #check the current status of the button
+            status = statusSelectButton.text
+            if status == 'active':
+                #the current status is active, so click the button for the deactivation
+                statusSelectButton.click()
+                try:
+                    deactivateButton = WebDriverWait(self.selenium,self._TimeOut). \
+                                                     until(lambda s: user.find_element(*_locDisabledStatusAction))
+                    #deactivateButton.click() 
+                    deactivateButton.submit()    
+                except Exceptions.TimeoutException:          
+                    print "the submit button was not found.\n"
+                                                                  
+            else:
+                #the current status is inactive, so no further action is needed
+                print "the user is already inactive.\n"
+            return True
+               
     #test
     def test(self):
         
@@ -250,16 +364,16 @@ class MozTrapManageUserPage(MozTrapBasePage):
             if name_category == category and len(name_category) == len(category):
                 #look for the category with the given name
                 item_no = 1
-                content = 0
+                content is None
                 while 1:
                     try:
                         item = element.find_element(By.CSS_SELECTOR, "#id-filter-"+category+"-"+str(item_no))
                         content = item.find_element(By.XPATH, "//label[text()='" + name + "']")
-                        if content != 0:
+                        if content is not None:
                             break
                         item_no = item_no + 1                      
                     except Exceptions.NoSuchElementException:
                         break
-                if content != 0:
+                if content is not None:
                     content.click()
              
